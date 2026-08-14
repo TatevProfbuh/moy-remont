@@ -360,8 +360,8 @@ window.supabase = supabase;
         <div style="font-size:16px;font-weight:800;margin-bottom:8px">📸 Как добавлять расходы</div>
         <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px">
           <div style="padding:10px 0;border-bottom:1px solid var(--border)">➕ <b>Вручную</b> — кнопка «Добавить расход» внизу</div>
-          <div style="padding:10px 0;border-bottom:1px solid var(--border)">📷 <b>Фото чека</b> — прикрепи фото к записи</div>
-          <div style="padding:10px 0">🤖 <b>Распознать</b> — сфотографируй список расходов, ИИ сам всё внесёт</div>
+          
+          
         </div>
         <button onclick="finishOnboarding()" style="width:100%;background:var(--accent);color:white;border:none;border-radius:var(--rs);padding:14px;font-size:15px;font-weight:800;cursor:pointer">Начать вести учёт 🚀</button>
       </div>
@@ -478,17 +478,7 @@ window.supabase = supabase;
       <div class="field"><label>Зона</label><select id="eZone"></select></div>
     </div>
     <div class="field"><label>Магазин / подрядчик</label><input type="text" id="eStore" placeholder="Леруа, мастер Сергей..."/></div>
-    <div class="field">
-      <label>Фото (чек, записи, материалы)</label>
-      <div class="photo-area">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">Можно добавить несколько фото</div>
-        <div class="photo-btns">
-          <label class="photo-btn"><input type="file" id="fCamera" accept="image/*" capture="environment" multiple/><span class="photo-btn-icon">📷</span><span>Камера</span></label>
-          <label class="photo-btn"><input type="file" id="fGallery" accept="image/*" multiple/><span class="photo-btn-icon">🖼️</span><span>Галерея</span></label>
-        </div>
-        <div class="photo-previews" id="ePreviews"></div>
-      </div>
-    </div>
+
     <div class="field"><label>Заметка</label><textarea id="eNote" placeholder="Артикул, ссылка, количество..."></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="eDelBtn" style="color:var(--danger);border-color:var(--danger)" onclick="deleteCurrentExp()">🗑</button>
