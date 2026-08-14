@@ -745,6 +745,7 @@ function buildZoneSelect(selId, val){
 }
 
 function buildAllZoneSelects(){
+  if(!zonesArr || zonesArr.length === 0){ zonesArr = DEFAULT_ZONES.slice(); rebuildZones(); }
   buildZoneSelect('eZone','Общие зоны');
   buildZoneSelect('pZone','Общие зоны');
 }
@@ -1529,6 +1530,7 @@ function renderHeader(){
 // DASHBOARD
 // ══════════════════════════════════════════════
 function renderDashboard(){
+  if(!zonesArr || zonesArr.length === 0){ zonesArr = DEFAULT_ZONES.slice(); rebuildZones(); saveZones(); }
   renderHeader();
   var total = totalFact();
   var budget = Number(settings.budget)||0;
@@ -1687,6 +1689,8 @@ function removeZonePhoto(zoneName){
 // ZONES
 // ══════════════════════════════════════════════
 function renderZones(){
+  // Safety: always ensure zones exist
+  if(!zonesArr || zonesArr.length === 0){ zonesArr = DEFAULT_ZONES.slice(); rebuildZones(); }
   var zt={}, zc={};
   expenses.forEach(function(e){ zt[e.zone]=(zt[e.zone]||0)+Number(e.amount); zc[e.zone]=(zc[e.zone]||0)+1; });
 
