@@ -1158,11 +1158,14 @@ function loadFromSupabase(){
                   zonesArr = settRes.data.zones;
                 } else {
                   zonesArr = DEFAULT_ZONES.slice();
+                  // Save defaults to Supabase so they persist
+                  supa.from('user_settings').update({zones: DEFAULT_ZONES.slice()}).eq('user_id', uid).then(function(){});
                 }
                 zonePhotos = settRes.data.zone_photos || {};
               } else {
                 zonesArr = DEFAULT_ZONES.slice();
               }
+              if(!zonesArr || zonesArr.length === 0) zonesArr = DEFAULT_ZONES.slice();
               rebuildZones();
               // If no rows exist yet — create them immediately
               if(!expRes.data){
