@@ -1,4 +1,4 @@
-<html lang="ru">
+<<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -870,20 +870,14 @@ function activateKey(){
 
 function onKeySuccess(key){
   localStorage.setItem('remont_activated_key', key);
-  // Namespace prefix based on key — isolates each license
-  // Even on shared devices, TAT-A3K9 and TAT-B7X2 have separate data
   localStorage.setItem('remont_license_prefix', key.replace(/-/g,'_').toLowerCase()+'_');
-  isActivated = true;
-  isDemoMode = false;
+  isActivated = true; isDemoMode = false;
   hideKeyScreen();
-  document.getElementById('demoBanner').style.display = 'none';
+  var banner = document.getElementById('demoBanner');
+  if(banner) banner.style.display = 'none';
   setKeyError('');
-  loadAll();
-  buildAllZoneSelects();
-  seedIfNeeded();
-  loadAll();
-  var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length === 0;
-  if(isNew){ showOnboarding(); } else { renderDashboard(); }
+  // After key — show login form
+  showLoginForm();
 }
 
 function setKeyError(msg){
@@ -1406,14 +1400,15 @@ function initApp(){
   wrapSaveFunctions();
   supa.auth.getSession().then(function(res){
     if(res.data && res.data.session && res.data.session.user){
+      // Valid Supabase session — user is already logged in
       supaUser = res.data.session.user;
       onAuthSuccess();
     } else {
-      // No session — clear any stale local data and show login
+      // No session — clear stale data and show login
       var keysToRemove = [];
       for(var i=0; i<localStorage.length; i++){
         var k = localStorage.key(i);
-        if(k && k.indexOf('remont_') !== -1) keysToRemove.push(k);
+        if(k && (k.indexOf('remont_') !== -1)) keysToRemove.push(k);
       }
       keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
       showAuthScreenLogin();
@@ -1436,10 +1431,36 @@ function initApp(){
 }
 
 function showAuthScreenLogin(){
+  // First check if key is activated
+  var activatedKey = localStorage.getItem('remont_activated_key');
+  if(!activatedKey){
+    // No key — show key screen first
+    var ks = document.getElementById('keyScreen');
+    if(ks){
+      ks.style.display = 'flex';
+      document.getElementById('keyInput').onkeydown = function(e){
+        if(e.key === 'Enter') activateKey();
+      };
+      // Add demo link if not already there
+      if(!ks.querySelector('.demo-link')){
+        var demoLink = document.createElement('div');
+        demoLink.className = 'demo-link';
+        demoLink.style.cssText = 'margin-top:14px;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline';
+        demoLink.textContent = 'Попробовать демо (до 5 записей)';
+        demoLink.onclick = function(){ enterDemoMode(); showLoginForm(); };
+        ks.querySelector('div').appendChild(demoLink);
+      }
+    }
+    return;
+  }
+  showLoginForm();
+}
+
+function showLoginForm(){
   document.getElementById('authScreen').style.display = 'flex';
   var ep = document.getElementById('authEmail');
   var pp = document.getElementById('authPassword');
-  if(ep) ep.onkeydown = function(e){ if(e.key==='Enter') pp.focus(); };
+  if(ep) ep.onkeydown = function(e){ if(e.key==='Enter') pp && pp.focus(); };
   if(pp) pp.onkeydown = function(e){ if(e.key==='Enter') authSubmit(); };
 }
 
@@ -2013,12 +2034,13 @@ function renderAnalytics(){
         tips:['Сверь план с остатком бюджета перед каждой крупной покупкой'],
         saving: null
       });
-    } else if(spent_pct < 30 && total > 50000){
+    } else {
       cards.push({
         type:'good', icon:'✅',
-        title:'Хороший контроль бюджета',
-        body:'Потрачено <b>'+spent_pct+'%</b> от бюджета. Есть запас на непредвиденные расходы.',
-        tips:['Заложи 10-15% бюджета как резерв на непредвиденное — это стандарт в строительстве'],
+        title:'Потрачено '+spent_pct+'% бюджета',
+        body:'Факт: <b>'+fmt(total)+'</b> из '+fmt(budget)+'. Остаток: <b>'+fmt(budget-total)+'</b>.',
+        tips:['Заложи 10-15% бюджета как резерв на непредвиденное — это стандарт в строительстве',
+              'Сравни плановые расходы с остатком — всё ли уложится в бюджет'],
         saving: null
       });
     }
@@ -2028,7 +2050,7 @@ function renderAnalytics(){
   Object.keys(zoneTotals).forEach(function(zone){
     var sum = zoneTotals[zone];
     var bench = ZONE_BENCHMARKS[zone];
-    if(!bench || sum < 50000) return;
+    if(!bench || sum < 10000) return;
     if(sum > bench.alert){
       var over = sum - bench.warn;
       cards.push({
@@ -2083,7 +2105,7 @@ function renderAnalytics(){
     }
 
     // Конкретные советы по каждой крупной категории
-    if(sum > 80000 && SAVING_TIPS[cat] && pct_of_total > 0.1){
+    if(sum > 5000 && SAVING_TIPS[cat] && pct_of_total > 0.05){
       cards.push({
         type:'info', icon: getCatIcon(cat),
         title:'Советы по экономии: '+cat+' ('+fmt(sum)+')',
@@ -2684,20 +2706,29 @@ function openEditPlan(id){
 function closePlanModal(){ closeOverlay('planOverlay'); }
 
 function savePlan2(){
-  var amt = parseFloat(document.getElementById('pAmt').value);
+  var amtStr = document.getElementById('pAmt').value.trim();
+  var amt = parseFloat(amtStr) || 0;
   var desc = document.getElementById('pDesc').value.trim();
-  if(!amt||!desc){
-    if(!desc) document.getElementById('pDesc').style.borderColor='var(--danger)';
-    if(!amt) document.getElementById('pAmt').style.borderColor='var(--danger)';
-    setTimeout(function(){ document.getElementById('pDesc').style.borderColor=''; document.getElementById('pAmt').style.borderColor=''; },1500);
+  if(!desc){
+    document.getElementById('pDesc').style.borderColor='var(--danger)';
+    setTimeout(function(){ document.getElementById('pDesc').style.borderColor=''; },1500);
     return;
   }
-  var obj={id:editingPlanId||(Date.now().toString()),desc:desc,amount:amt,cat:document.getElementById('pCat').value,zone:document.getElementById('pZone').value,note:document.getElementById('pNote').value.trim()};
+  var obj={
+    id: editingPlanId||(Date.now().toString()),
+    desc: desc,
+    amount: amt,
+    cat: document.getElementById('pCat').value,
+    zone: document.getElementById('pZone').value,
+    note: document.getElementById('pNote').value.trim()
+  };
   if(editingPlanId){
     var idx=-1;
     for(var i=0;i<planned.length;i++){ if(planned[i].id===editingPlanId){idx=i;break;} }
     if(idx!==-1) planned[idx]=obj;
-  } else { planned.push(obj); }
+  } else {
+    planned.push(obj);
+  }
   savePlan(); closePlanModal(); renderPlanView(); renderDashboard();
 }
 
