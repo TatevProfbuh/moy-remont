@@ -1237,20 +1237,11 @@ function wrapSaveFunctions(){
 // LOGOUT
 // ══════════════════════════════════════════════
 function logout(){
-  confirm2('Выйти из аккаунта?', function(){
-    // Nuclear logout - clear absolutely everything
-    try { if(supa) supa.auth.signOut(); } catch(e){}
-    // Clear ALL localStorage
-    localStorage.clear();
-    // Clear sessionStorage
-    try { sessionStorage.clear(); } catch(e){}
-    // Delete all cookies for this domain
-    document.cookie.split(';').forEach(function(c){
-      document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
-    });
-    // Force reload from server (not cache)
-    location.href = location.href.split('?')[0] + '?t=' + Date.now();
-  });
+  if(!confirm('Выйти из аккаунта?')) return;
+  try { if(supa) supa.auth.signOut(); } catch(e){}
+  localStorage.clear();
+  try { sessionStorage.clear(); } catch(e){}
+  location.href = location.pathname + '?logout=' + Date.now();
 }
 
 // ══════════════════════════════════════════════
@@ -1388,17 +1379,22 @@ function initApp(){
   wrapSaveFunctions();
   supa.auth.getSession().then(function(res){
     if(res.data && res.data.session && res.data.session.user){
-      // Valid Supabase session — user is already logged in
-      supaUser = res.data.session.user;
-      onAuthSuccess();
+      // Verify session is still valid by getting user
+      supa.auth.getUser().then(function(userRes){
+        if(userRes.data && userRes.data.user && !userRes.error){
+          // Session valid
+          supaUser = userRes.data.user;
+          onAuthSuccess();
+        } else {
+          // Session expired or user deleted - clear and show login
+          localStorage.clear();
+          showAuthScreenLogin();
+        }
+      }).catch(function(){
+        localStorage.clear();
+        showAuthScreenLogin();
+      });
     } else {
-      // No session — clear stale data and show login
-      var keysToRemove = [];
-      for(var i=0; i<localStorage.length; i++){
-        var k = localStorage.key(i);
-        if(k && (k.indexOf('remont_') !== -1)) keysToRemove.push(k);
-      }
-      keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
       showAuthScreenLogin();
     }
   }).catch(function(){
@@ -1411,8 +1407,6 @@ function initApp(){
     }
     if(event === 'SIGNED_OUT'){
       supaUser = null; currentUser = '';
-      expenses = []; planned = []; settings = {budget:0,funds:[]};
-      zonesArr = DEFAULT_ZONES.slice(); rebuildZones();
       location.reload();
     }
   });
