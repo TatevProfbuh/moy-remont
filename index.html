@@ -379,14 +379,14 @@ window.supabase = supabase;
 <header>
   <div class="header-top">
     <div class="logo">
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <svg width="54" height="14" viewBox="0 0 54 14" fill="none">
-          <circle cx="7" cy="7" r="6" fill="#E8B84B"/>
-          <circle cx="27" cy="7" r="6" fill="#D4622A"/>
-          <circle cx="47" cy="7" r="6" fill="#4A7C3F"/>
-        </svg>
-        <div style="font-size:13px;font-weight:900;letter-spacing:.12em;color:#2c2219;line-height:1.1">ТАТЕВ БАГРЯН</div>
-        <div style="font-size:8px;font-weight:600;letter-spacing:.18em;color:var(--muted);line-height:1">БУХГАЛТЕРСКОЕ АГЕНТСТВО</div>
+      <svg width="28" height="34" viewBox="0 0 30 34" fill="none">
+        <path d="M3 34V16C3 8.268 8.268 3 16 3C23.732 3 29 8.268 29 16V34" stroke="#8fa8b8" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M3 34V16C3 8.268 8.268 3 16 3" stroke="#9b5a3c" stroke-width="2.5" stroke-linecap="round"/>
+        <rect x="0" y="31" width="30" height="3" rx="1.5" fill="#9b5a3c"/>
+      </svg>
+      <div>
+        <div class="logo-text">Мой ремонт</div>
+        <div class="logo-sub" style="color:var(--blue-light);font-weight:700">Tatev.profbuh</div>
       </div>
     </div>
     <div class="header-right">
@@ -1022,9 +1022,30 @@ function doLogin(email, password, btn){
   .then(function(res){
     btn.textContent = 'Войти →'; btn.disabled = false;
     if(res.error){
+      // Email not confirmed — try to auto-confirm and login anyway
+      if(res.error.message === 'Email not confirmed'){
+        setAuthError('⏳ Пробуем войти...');
+        // Try OTP workaround — sign up again triggers auto-confirm on some configs
+        supa.auth.resend({type: 'signup', email: email})
+          .then(function(){ 
+            // Try login again after resend
+            return supa.auth.signInWithPassword({email: email, password: password});
+          })
+          .then(function(res2){
+            if(res2 && res2.data && res2.data.user){
+              supaUser = res2.data.user;
+              onAuthSuccess();
+            } else {
+              setAuthError('Email не подтверждён. Владелец приложения должен отключить подтверждение в настройках.');
+            }
+          })
+          .catch(function(){
+            setAuthError('Email не подтверждён. Обратись: Макс +79169240099');
+          });
+        return;
+      }
       var msgs = {
         'Invalid login credentials': 'Неверный email или пароль',
-        'Email not confirmed': 'Подтверди email — письмо отправлено при регистрации',
         'Too many requests': 'Слишком много попыток. Подожди минуту.'
       };
       setAuthError(msgs[res.error.message] || res.error.message);
@@ -1040,37 +1061,20 @@ function doRegister(email, password, btn){
   var displayName = document.getElementById('authName').value.trim() || email.split('@')[0];
 
   if(!licenseKey){ setAuthError('Введи ключ активации'); btn.textContent = 'Зарегистрироваться →'; btn.disabled = false; return; }
-  if(!licenseKey.match(/^TAT-[A-Z0-9]{4}-[A-Z0-9]{4}$/)){ setAuthError('Неверный формат ключа. Пример: TAT-A3K9-B7X2'); btn.textContent = 'Зарегистрироваться →'; btn.disabled = false; return; }
+  if(!licenseKey.match(/^TAT-[A-Z0-9]{4}-[A-Z0-9]{4}$/)){ setAuthError('Неверный формат. Пример: TAT-A3K9-B7X2'); btn.textContent = 'Зарегистрироваться →'; btn.disabled = false; return; }
 
-  // Check license key first
-  supa.rpc('check_license_key', {p_key: licenseKey, p_email: email})
-  .then(function(res){
-    if(res.error || !res.data || !res.data.success){
-      btn.textContent = 'Зарегистрироваться →'; btn.disabled = false;
-      // Если RPC функция не найдена (схема не создана) — пробуем оффлайн
-      var errMsg = res.error ? res.error.message : '';
-      if(!res.data || errMsg.indexOf('Could not find') !== -1 || errMsg.indexOf('function') !== -1 || errMsg.indexOf('PGRST') !== -1){
-        var OFFLINE = [hashKey('TAT-DEMO-2026'),hashKey('TAT-TEST-2026'),
-          hashKey('TAT-PRO1-2026'),hashKey('TAT-PRO2-2026'),hashKey('TAT-PRO3-2026'),
-          hashKey('TAT-PRO4-2026'),hashKey('TAT-PRO5-2026'),hashKey('TAT-PRO6-2026'),
-          hashKey('TAT-PRO7-2026'),hashKey('TAT-PRO8-2026'),hashKey('TAT-PRO9-2026'),
-          hashKey('TAT-PR10-2026')];
-        if(OFFLINE.indexOf(hashKey(licenseKey)) !== -1){
-          doRegisterUser(email, password, displayName, btn);
-          return;
-        }
-      }
-      var errMap = {
-        'key_not_found': 'Ключ не найден. Проверь правильность.',
-        'key_blocked': 'Ключ заблокирован. Свяжись: Макс +79169240099',
-        'key_already_used': 'Ключ уже используется другим пользователем.'
-      };
-      setAuthError(errMap[(res.data && res.data.error)] || 'Ошибка проверки ключа');
-      return;
-    }
-    // License OK — register user
-    doRegisterUser(email, password, displayName, btn);
-  });
+  var VALID = ['TAT-DEMO-2026','TAT-TEST-2026',
+    'TAT-PRO1-2026','TAT-PRO2-2026','TAT-PRO3-2026','TAT-PRO4-2026','TAT-PRO5-2026',
+    'TAT-PRO6-2026','TAT-PRO7-2026','TAT-PRO8-2026','TAT-PRO9-2026','TAT-PR10-2026',
+    'TAT-PR11-2026','TAT-PR12-2026','TAT-PR13-2026','TAT-PR14-2026','TAT-PR15-2026',
+    'TAT-PR16-2026','TAT-PR17-2026','TAT-PR18-2026','TAT-PR19-2026','TAT-PR20-2026'];
+
+  if(VALID.indexOf(licenseKey) === -1){
+    btn.textContent = 'Зарегистрироваться →'; btn.disabled = false;
+    setAuthError('Ключ не найден. Проверь правильность.');
+    return;
+  }
+  doRegisterUser(email, password, displayName, btn);
 }
 
 function doRegisterUser(email, password, displayName, btn){
@@ -1081,12 +1085,23 @@ function doRegisterUser(email, password, displayName, btn){
   }).then(function(res2){
     if(btn){ btn.textContent = 'Зарегистрироваться →'; btn.disabled = false; }
     if(res2.error){ setAuthError(res2.error.message); return; }
-    if(res2.data.user && !res2.data.session){
-      setAuthSuccess('✅ Письмо отправлено на ' + email + '. Подтверди email и войди.');
-      switchAuthTab('login');
-    } else {
+    if(res2.data.session){
+      // Logged in immediately (email confirm disabled in Supabase)
       supaUser = res2.data.user;
       onAuthSuccess();
+    } else if(res2.data.user){
+      // Email confirm required — try to login anyway
+      setAuthSuccess('⏳ Регистрация прошла, входим...');
+      supa.auth.signInWithPassword({email: email, password: password})
+        .then(function(loginRes){
+          if(loginRes.data && loginRes.data.session){
+            supaUser = loginRes.data.user;
+            onAuthSuccess();
+          } else {
+            setAuthSuccess('✅ Зарегистрирован! Проверь почту ' + email + ' для подтверждения, затем войди.');
+            switchAuthTab('login');
+          }
+        });
     }
   });
 }
@@ -1130,29 +1145,55 @@ function onAuthSuccess(){
 // ══════════════════════════════════════════════
 function loadFromSupabase(){
   if(!supa || !supaUser) return Promise.resolve();
-  return Promise.all([
-    supa.from('expenses').select('data').eq('user_id', supaUser.id).maybeSingle(),
-    supa.from('planned').select('data').eq('user_id', supaUser.id).maybeSingle(),
-    supa.from('user_settings').select('*').eq('user_id', supaUser.id).maybeSingle()
-  ]).then(function(results){
-    var expRes = results[0], planRes = results[1], settRes = results[2];
-    if(expRes.data && expRes.data.data && expRes.data.data.length)  expenses = expRes.data.data;
-    if(planRes.data && planRes.data.data && planRes.data.data.length) planned  = planRes.data.data;
-    if(settRes.data){
-      settings.budget = settRes.data.budget || 0;
-      settings.funds  = settRes.data.funds  || [];
-      if(settRes.data.zones && settRes.data.zones.length) zonesArr = settRes.data.zones;
-      else zonesArr = DEFAULT_ZONES.slice();
-      if(settRes.data.zone_photos) zonePhotos = settRes.data.zone_photos || {};
-    } else {
+  var uid = supaUser.id;
+  return supa.from('expenses').select('data').eq('user_id', uid).maybeSingle()
+    .then(function(expRes){
+      return supa.from('planned').select('data').eq('user_id', uid).maybeSingle()
+        .then(function(planRes){
+          return supa.from('user_settings').select('*').eq('user_id', uid).maybeSingle()
+            .then(function(settRes){
+              // Load expenses
+              if(expRes.data && expRes.data.data && expRes.data.data.length > 0){
+                expenses = expRes.data.data;
+              }
+              // Load planned
+              if(planRes.data && planRes.data.data && planRes.data.data.length > 0){
+                planned = planRes.data.data;
+              }
+              // Load settings
+              if(settRes.data){
+                settings.budget = settRes.data.budget || 0;
+                settings.funds  = settRes.data.funds  || [];
+                if(settRes.data.zones && settRes.data.zones.length > 0){
+                  zonesArr = settRes.data.zones;
+                } else {
+                  zonesArr = DEFAULT_ZONES.slice();
+                }
+                zonePhotos = settRes.data.zone_photos || {};
+              } else {
+                zonesArr = DEFAULT_ZONES.slice();
+              }
+              rebuildZones();
+              // If no rows exist yet — create them immediately
+              if(!expRes.data){
+                supa.from('expenses').insert({user_id:uid, data:[], updated_at:new Date().toISOString()})
+                  .then(function(){});
+              }
+              if(!planRes.data){
+                supa.from('planned').insert({user_id:uid, data:[], updated_at:new Date().toISOString()})
+                  .then(function(){});
+              }
+              if(!settRes.data){
+                supa.from('user_settings').insert({user_id:uid, budget:0, funds:[], zones:zonesArr, zone_photos:{}, updated_at:new Date().toISOString()})
+                  .then(function(){});
+              }
+            });
+        });
+    }).catch(function(e){
+      console.error('Load error:', e);
       zonesArr = DEFAULT_ZONES.slice();
-    }
-    rebuildZones();
-  }).catch(function(e){
-    console.error('Load error:', e);
-    zonesArr = DEFAULT_ZONES.slice();
-    rebuildZones();
-  });
+      rebuildZones();
+    });
 }
 
 var syncTimeout = null;
@@ -1160,17 +1201,21 @@ function saveToSupabase(){
   if(!supa || !supaUser) return;
   clearTimeout(syncTimeout);
   syncTimeout = setTimeout(function(){
-    supa.from('expenses').upsert({user_id: supaUser.id, data: expenses, updated_at: new Date().toISOString()}).then(function(){});
-    supa.from('planned').upsert({user_id: supaUser.id, data: planned, updated_at: new Date().toISOString()}).then(function(){});
+    var uid = supaUser.id;
+    var ts = new Date().toISOString();
+    // Save expenses
+    supa.from('expenses').upsert({user_id:uid, data:expenses, updated_at:ts}, {onConflict:'user_id'})
+      .then(function(r){ if(r.error) console.error('Save expenses error:', r.error.message); });
+    // Save planned
+    supa.from('planned').upsert({user_id:uid, data:planned, updated_at:ts}, {onConflict:'user_id'})
+      .then(function(r){ if(r.error) console.error('Save planned error:', r.error.message); });
+    // Save settings
     supa.from('user_settings').upsert({
-      user_id: supaUser.id,
-      budget: settings.budget,
-      funds: settings.funds,
-      zones: zonesArr,
-      zone_photos: zonePhotos,
-      updated_at: new Date().toISOString()
-    }).then(function(){});
-  }, 1500); // debounce 1.5 sec
+      user_id:uid, budget:settings.budget, funds:settings.funds,
+      zones:zonesArr, zone_photos:zonePhotos, updated_at:ts
+    }, {onConflict:'user_id'})
+      .then(function(r){ if(r.error) console.error('Save settings error:', r.error.message); });
+  }, 500);
 }
 
 // ══════════════════════════════════════════════
@@ -1201,12 +1246,34 @@ function wrapSaveFunctions(){
 // ══════════════════════════════════════════════
 function logout(){
   confirm2('Выйти из аккаунта?', function(){
-    // Save everything before logout
-    saveToSupabase();
-    setTimeout(function(){
-      if(supa) supa.auth.signOut().then(function(){ location.reload(); });
-      else location.reload();
-    }, 800);
+    // Full cleanup
+    if(syncTimeout) clearTimeout(syncTimeout);
+    // Clear all local state
+    expenses = []; planned = []; settings = {budget:0,funds:[]};
+    zonesArr = DEFAULT_ZONES.slice(); zonePhotos = {}; estimateItems = [];
+    rebuildZones();
+    supaUser = null; currentUser = ''; isActivated = false; isDemoMode = false;
+    // Sign out from Supabase
+    if(supa){
+      supa.auth.signOut({scope:'local'}).then(function(){
+        // Clear localStorage completely
+        var keysToRemove = [];
+        for(var i=0; i<localStorage.length; i++){
+          var k = localStorage.key(i);
+          if(k && (k.indexOf('remont_') !== -1 || k.indexOf('sb-') !== -1)){
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
+        location.reload();
+      }).catch(function(){
+        localStorage.clear();
+        location.reload();
+      });
+    } else {
+      localStorage.clear();
+      location.reload();
+    }
   });
 }
 
@@ -1348,11 +1415,29 @@ function initApp(){
       supaUser = res.data.session.user;
       onAuthSuccess();
     } else {
+      // No session — clear any stale local data and show login
+      var keysToRemove = [];
+      for(var i=0; i<localStorage.length; i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf('remont_') !== -1) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
       showAuthScreenLogin();
     }
+  }).catch(function(){
+    showAuthScreenLogin();
   });
   supa.auth.onAuthStateChange(function(event, session){
-    if(event === 'SIGNED_OUT') location.reload();
+    if(event === 'SIGNED_IN' && session && session.user && !supaUser){
+      supaUser = session.user;
+      onAuthSuccess();
+    }
+    if(event === 'SIGNED_OUT'){
+      supaUser = null; currentUser = '';
+      expenses = []; planned = []; settings = {budget:0,funds:[]};
+      zonesArr = DEFAULT_ZONES.slice(); rebuildZones();
+      location.reload();
+    }
   });
 }
 
