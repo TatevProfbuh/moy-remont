@@ -39,7 +39,7 @@ header{background:var(--card);border-bottom:1.5px solid var(--border);padding:14
 .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .total-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .total-amount{font-size:20px;font-weight:800;color:var(--accent)}
-.user-badge{font-size:12px;font-weight:700;color:var(--blue-light);cursor:pointer;padding:3px 8px;border:1.5px solid var(--blue-light);border-radius:20px;background:var(--card)}
+.user-badge{font-size:12px;font-weight:700;color:var(--blue-light);cursor:pointer;padding:6px 12px;border:1.5px solid var(--blue-light);border-radius:20px;background:var(--card);-webkit-tap-highlight-color:rgba(0,0,0,0.1);min-height:32px;display:flex;align-items:center}
 .user-badge:active{color:var(--accent)}
 .tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:3px}
 .tab{flex:1;padding:8px 4px;background:none;border:none;border-radius:8px;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center;letter-spacing:.02em}
@@ -392,7 +392,7 @@ window.supabase = supabase;
     <div class="header-right">
       <div><div id="hAddress" style="font-size:10px;color:var(--muted);font-weight:600;text-align:right;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none"></div>
       <div class="total-label">Потрачено</div><div class="total-amount" id="hTotal">0 ₽</div></div>
-      <div class="user-badge" id="userBadge" title="Выйти">👤 …</div>
+      <div class="user-badge" id="userBadge" title="Выйти" onclick="logout()">👤 …</div>
     </div>
   </div>
   <div class="tabs">
@@ -1112,6 +1112,7 @@ function onAuthSuccess(){
     : supaUser.email.split('@')[0];
   var badge = document.getElementById('userBadge');
   if(badge){ badge.textContent = '👤 ' + currentUser; badge.onclick = function(){ logout(); }; }
+    badge.setAttribute('onclick','logout()');
   var banner = document.getElementById('demoBanner');
   if(banner) banner.style.display = 'none';
   isActivated = true;
@@ -1237,34 +1238,18 @@ function wrapSaveFunctions(){
 // ══════════════════════════════════════════════
 function logout(){
   confirm2('Выйти из аккаунта?', function(){
-    // Full cleanup
-    if(syncTimeout) clearTimeout(syncTimeout);
-    // Clear all local state
-    expenses = []; planned = []; settings = {budget:0,funds:[]};
-    zonesArr = DEFAULT_ZONES.slice(); zonePhotos = {}; estimateItems = [];
-    rebuildZones();
-    supaUser = null; currentUser = ''; isActivated = false; isDemoMode = false;
-    // Sign out from Supabase
-    if(supa){
-      supa.auth.signOut({scope:'local'}).then(function(){
-        // Clear localStorage completely
-        var keysToRemove = [];
-        for(var i=0; i<localStorage.length; i++){
-          var k = localStorage.key(i);
-          if(k && (k.indexOf('remont_') !== -1 || k.indexOf('sb-') !== -1)){
-            keysToRemove.push(k);
-          }
-        }
-        keysToRemove.forEach(function(k){ localStorage.removeItem(k); });
-        location.reload();
-      }).catch(function(){
-        localStorage.clear();
-        location.reload();
-      });
-    } else {
-      localStorage.clear();
-      location.reload();
-    }
+    // Nuclear logout - clear absolutely everything
+    try { if(supa) supa.auth.signOut(); } catch(e){}
+    // Clear ALL localStorage
+    localStorage.clear();
+    // Clear sessionStorage
+    try { sessionStorage.clear(); } catch(e){}
+    // Delete all cookies for this domain
+    document.cookie.split(';').forEach(function(c){
+      document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+    });
+    // Force reload from server (not cache)
+    location.href = location.href.split('?')[0] + '?t=' + Date.now();
   });
 }
 
