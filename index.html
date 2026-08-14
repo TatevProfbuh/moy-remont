@@ -2365,25 +2365,47 @@ function loadEstimateFile(e){
 
         // Определяем: есть ли заголовочная строка (Наименование, Название и т.п.)
         var dataStartRow = 0;
-        var colB = 1, colD = 3, colE = 4, colG = 6; // default columns
+        var colB = 1, colD = 3, colE = 4, colG = 6, colPrice = -1; // default columns
 
-        // Ищем заголовок
+        // Сканируем все первые 5 строк — ищем заголовки
         for(var ri=0; ri<Math.min(5,rawRows.length); ri++){
           var rr = rawRows[ri];
-          var joined = rr.filter(Boolean).join(' ').toLowerCase();
+          if(!rr) continue;
+          rr.forEach(function(cell, ci){
+            if(!cell) return;
+            var cl = String(cell).toLowerCase().trim();
+            if(cl.indexOf('наименован')!==-1) colB=ci;
+            else if(cl.indexOf('название')!==-1 && ci!==colB) colD=ci;
+            else if(cl.indexOf('кол')!==-1 && cl.indexOf('колонк')===-1) colE=ci;
+            else if(cl.indexOf('контакт')!==-1||cl.indexOf('поставщ')!==-1) colG=ci;
+            if(colPrice===-1 && (cl==='цена'||cl==='цена руб'||cl==='стоимость'||cl==='price'||cl==='сумма'||cl==='цена за ед'||cl==='цена/шт')) colPrice=ci;
+          });
+          var joined = (rr.filter(Boolean).join(' ')||'').toLowerCase();
           if(joined.indexOf('наименован')!==-1 || joined.indexOf('название')!==-1){
-            // Found header — detect column positions
-            rr.forEach(function(cell, ci){
-              if(!cell) return;
-              var cl = String(cell).toLowerCase().trim();
-              if(cl.indexOf('наименован')!==-1) colB=ci;
-              else if(cl.indexOf('название')!==-1 && ci!==colB) colD=ci;
-              else if(cl.indexOf('кол')!==-1) colE=ci;
-              else if(cl.indexOf('контакт')!==-1||cl.indexOf('поставщ')!==-1) colG=ci;
-            });
             dataStartRow = ri+1;
-            break;
           }
+        }
+
+        // Если колонка цены не найдена по заголовку —
+        // берём первую колонку где встречаются числа > 100 (вероятно цены)
+        if(colPrice === -1){
+          var colNumCounts = {};
+          for(var ri2=dataStartRow; ri2<Math.min(dataStartRow+20, rawRows.length); ri2++){
+            var row2 = rawRows[ri2];
+            if(!row2) continue;
+            row2.forEach(function(cell, ci){
+              if(ci <= colE) return; // пропускаем колонки названия/кол-ва
+              var v = parseFloat(String(cell||'').replace(/[^0-9.]/g,''));
+              if(!isNaN(v) && v > 100){
+                colNumCounts[ci] = (colNumCounts[ci]||0)+1;
+              }
+            });
+          }
+          // Берём колонку с наибольшим количеством чисел
+          var maxCount = 0;
+          Object.keys(colNumCounts).forEach(function(ci){
+            if(colNumCounts[ci] > maxCount){ maxCount=colNumCounts[ci]; colPrice=parseInt(ci); }
+          });
         }
 
         // Маппинг секций → зоны
@@ -2419,6 +2441,7 @@ function loadEstimateFile(e){
           var titleVal = row[colD];
           var qtyVal = row[colE];
           var supplierVal = row[colG];
+          var priceVal = colPrice >= 0 ? row[colPrice] : null;
 
           var aStr = colA !== null && colA !== undefined ? String(colA).trim() : '';
 
@@ -2463,6 +2486,14 @@ function loadEstimateFile(e){
             if(!isNaN(qNum)) qty = qNum;
           }
 
+          // Цена из колонки цены
+          var price = 0;
+          if(priceVal !== null && priceVal !== undefined && priceVal !== '-'){
+            var pNum = parseFloat(String(priceVal).replace(/[^0-9.]/g,''));
+            if(!isNaN(pNum) && pNum > 0) price = pNum;
+          }
+          var total = price > 0 ? Math.round(qty * price) : 0;
+
           // Поставщик/контакт
           var supplier = supplierVal ? String(supplierVal).replace(/\n/g,' ').trim().substring(0,50) : '';
 
@@ -2475,8 +2506,8 @@ function loadEstimateFile(e){
             name: fullName,
             qty: qty,
             unit: 'шт',
-            price: 0,
-            total: 0,
+            price: price,
+            total: total,
             cat: guessCategory(fullName),
             zone: zone,
             supplier: supplier,
