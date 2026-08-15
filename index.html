@@ -481,10 +481,11 @@ window.supabase = supabase;
     <div class="field"><label>Магазин / подрядчик</label><input type="text" id="eStore" placeholder="Леруа, мастер Сергей..."/></div>
 
     <div class="field"><label>Заметка</label><textarea id="eNote" placeholder="Артикул, ссылка, количество..."></textarea></div>
+    <div id="ePreviews"></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="eDelBtn" style="color:var(--danger);border-color:var(--danger)" onclick="deleteCurrentExp()">🗑</button>
       <button class="btn-cancel" onclick="closeExpModal()">Отмена</button>
-      <button class="btn-save" onclick="saveExp()">Сохранить</button>
+      <button class="btn-save" onclick="saveExp2()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1807,12 +1808,14 @@ function openAddModal(){
   document.getElementById('eCat').value = 'Материалы';
   document.getElementById('eStore').value = '';
   document.getElementById('eNote').value = '';
-  document.getElementById('eDelBtn').style.display = 'none';
+  var eDelBtn = document.getElementById('eDelBtn');
+  if(eDelBtn) eDelBtn.style.display = 'none';
   currentPhotos = [];
-  document.getElementById('ePreviews').innerHTML = '';
+  var prev = document.getElementById('ePreviews');
+  if(prev) prev.innerHTML = '';
   buildZoneSelect('eZone','Общие зоны');
   openOverlay('expOverlay');
-  setTimeout(function(){ document.getElementById('eAmt').focus(); }, 200);
+  setTimeout(function(){ var a=document.getElementById('eAmt'); if(a) a.focus(); }, 200);
 }
 
 function openEditExp(id){
