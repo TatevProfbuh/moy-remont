@@ -90,7 +90,6 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
 .exp-date{font-size:11px;color:var(--muted)}
 .exp-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
 .exp-amount{font-size:15px;font-weight:800}
-.exp-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;cursor:pointer;border:1.5px solid var(--border);flex-shrink:0;align-self:center}
 .edit-btn{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;line-height:1;transition:color .2s}
 .edit-btn:hover{color:var(--accent2)}
 .del-btn{background:none;border:none;color:var(--border);font-size:16px;cursor:pointer;padding:2px;line-height:1;transition:color .2s}
@@ -148,17 +147,8 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
 .btn-save{flex:1;background:var(--accent);color:white;border:none;border-radius:var(--rs);padding:14px;font-size:15px;font-weight:800;cursor:pointer}
 .btn-cancel{background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:var(--rs);padding:14px 18px;font-size:15px;font-weight:700;cursor:pointer}
 /* PHOTO */
-.photo-area{border:2px dashed var(--border);border-radius:var(--r);padding:14px;background:var(--bg);transition:border-color .2s}
 .photo-area:focus-within{border-color:var(--accent)}
-.photo-btns{display:flex;gap:8px}
-.photo-btn{flex:1;background:var(--card);border:1.5px solid var(--border);border-radius:var(--rs);padding:10px 8px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:border-color .2s}
 .photo-btn:hover{border-color:var(--accent)}
-.photo-btn input{display:none}
-.photo-btn-icon{font-size:20px}
-.photo-previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.prev-wrap{position:relative;width:72px;height:72px}
-.prev-img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);cursor:pointer}
-.prev-rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:var(--accent);color:#fff;border:none;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800;line-height:1}
 /* LIGHTBOX */
 .lightbox{display:none;position:fixed;inset:0;background:rgba(20,12,6,.92);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 .lightbox.open{display:flex}
@@ -314,11 +304,11 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
       <!-- Step 3 -->
       <div class="ob-step" id="ob3" style="display:none">
         <div style="font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Шаг 3 из 3</div>
-        <div style="font-size:16px;font-weight:800;margin-bottom:8px">📸 Как добавлять расходы</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:8px">📊 Как вести учёт</div>
         <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px">
-          <div style="padding:10px 0;border-bottom:1px solid var(--border)">➕ <b>Вручную</b> — кнопка «Добавить расход» внизу</div>
-          <div style="padding:10px 0;border-bottom:1px solid var(--border)">📷 <b>Фото чека</b> — прикрепи фото к записи</div>
-          <div style="padding:10px 0">🤖 <b>Распознать</b> — сфотографируй список расходов, ИИ сам всё внесёт</div>
+          <div style="padding:10px 0;border-bottom:1px solid var(--border)">📋 <b>Загрузи смету</b> — позиции можно перенести в план расходов</div>
+          <div style="padding:10px 0;border-bottom:1px solid var(--border)">✅ <b>Отмечай факт</b> — по мере оплаты переводи плановые расходы в фактические</div>
+          <div style="padding:10px 0">📈 <b>Следи за бюджетом</b> — сервис покажет план, факт, отклонения и аналитику</div>
         </div>
         <button onclick="finishOnboarding()" style="width:100%;background:var(--accent);color:white;border:none;border-radius:var(--rs);padding:14px;font-size:15px;font-weight:800;cursor:pointer">Начать вести учёт 🚀</button>
       </div>
@@ -344,8 +334,7 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
       </div>
     </div>
     <div class="header-right">
-      <div><div id="hAddress" style="font-size:10px;color:var(--muted);font-weight:600;text-align:right;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none"></div>
-      <div id="hAddress" style="font-size:10px;color:var(--muted);font-weight:600;text-align:right;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none"></div>
+      <div><div id="hAddress" style="font-size:10px;color:var(--muted);font-weight:600;text-align:right;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none"></div>
       <div class="total-label">Потрачено</div><div class="total-amount" id="hTotal">0 ₽</div></div>
       <div class="user-badge" id="userBadge" title="Выйти">👤 …</div>
     </div>
@@ -444,17 +433,6 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
       <div class="field"><label>Зона</label><select id="eZone"></select></div>
     </div>
     <div class="field"><label>Магазин / подрядчик</label><input type="text" id="eStore" placeholder="Леруа, мастер Сергей..."/></div>
-    <div class="field">
-      <label>Фото (чек, записи, материалы)</label>
-      <div class="photo-area">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">Можно добавить несколько фото</div>
-        <div class="photo-btns">
-          <label class="photo-btn"><input type="file" id="fCamera" accept="image/*" capture="environment" multiple/><span class="photo-btn-icon">📷</span><span>Камера</span></label>
-          <label class="photo-btn"><input type="file" id="fGallery" accept="image/*" multiple/><span class="photo-btn-icon">🖼️</span><span>Галерея</span></label>
-        </div>
-        <div class="photo-previews" id="ePreviews"></div>
-      </div>
-    </div>
     <div class="field"><label>Заметка</label><textarea id="eNote" placeholder="Артикул, ссылка, количество..."></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" id="eDelBtn" style="color:var(--danger);border-color:var(--danger)" onclick="deleteCurrentExp()">🗑</button>
@@ -561,7 +539,6 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
   <div class="modal" onclick="event.stopPropagation()" style="max-height:90dvh">
     <div class="modal-handle"></div>
     <h2>⚙️ Бюджет и средства</h2>
-    <div class="field"><label>Название объекта / адрес</label><input type="text" id="sAddress" placeholder="Например: Квартира ЖК Сигнальный"/></div>
     <div class="field"><label>Название объекта / адрес</label><input type="text" id="sAddress" placeholder="Например: Квартира ЖК Сигнальный"/></div>
     <div class="field"><label>Общий бюджет на ремонт, ₽</label><input type="number" id="sBudget" placeholder="1 500 000" inputmode="decimal"/></div>
     <div class="section-title">Вложенные средства</div>
@@ -671,7 +648,6 @@ var ZONES = {};
 var activeFilter = 'all';
 var zonePhotos = {}; // {zoneName: base64}
 var activeZone = null;
-var currentPhotos = [];
 var editingExpId = null;
 var editingPlanId = null;
 var estimateItems = [];
@@ -882,221 +858,6 @@ function acceptAgreement(){
 
 
 // ══════════════════════════════════════════════
-// JSONBIN CLOUD SYNC
-// ══════════════════════════════════════════════
-var JBIN_KEY = '$2a$10$71CFEBIQcWjhX5BJ6j7U9upaa6bj23OTxmEh/Wx82/zuB5aGLKp36';
-var JBIN_URL = 'https://api.jsonbin.io/v3';
-var cloudBinId = null;
-var syncTimer = null;
-var isSyncing = false;
-
-function getBinName(){
-  var code = localStorage.getItem('remont_code') || '';
-  return 'remont_' + code.toLowerCase().replace(/-/g,'_');
-}
-
-function showSyncStatus(msg, color){
-  var badge = document.getElementById('userBadge');
-  if(!badge) return;
-  var orig = badge.textContent;
-  badge.textContent = msg;
-  badge.style.color = color || 'var(--green)';
-  setTimeout(function(){
-    badge.textContent = orig;
-    badge.style.color = '';
-  }, 2000);
-}
-
-// Load data from cloud
-function loadFromCloud(onDone){
-  var savedBinId = localStorage.getItem('remont_bin_' + getBinName());
-  if(!savedBinId){ onDone(false); return; }
-  
-  cloudBinId = savedBinId;
-  fetch(JBIN_URL + '/b/' + savedBinId + '/latest', {
-    headers: {'X-Master-Key': JBIN_KEY, 'X-Bin-Meta': 'false'}
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    if(data && data.expenses) expenses = data.expenses;
-    if(data && data.planned) planned = data.planned;
-    if(data && data.settings) settings = Object.assign({budget:0,funds:[],address:''}, data.settings);
-    if(data && data.zones && data.zones.length) zonesArr = data.zones;
-    if(data && data.zonePhotos) zonePhotos = data.zonePhotos;
-    onDone(true);
-  })
-  .catch(function(){ onDone(false); });
-}
-
-// Save data to cloud (debounced)
-function saveToCloud(){
-  if(!cloudBinId && !localStorage.getItem('remont_bin_' + getBinName())) {
-    createCloudBin(); return;
-  }
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 500);
-}
-
-function doSaveToCloud(){
-  if(isSyncing) return;
-  var binId = cloudBinId || localStorage.getItem('remont_bin_' + getBinName());
-  if(!binId){ createCloudBin(); return; }
-  isSyncing = true;
-  var data = {
-    expenses: expenses, planned: planned,
-    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
-    updated: new Date().toISOString()
-  };
-  fetch(JBIN_URL + '/b/' + binId, {
-    method: 'PUT',
-    headers: {'Content-Type':'application/json','X-Master-Key': JBIN_KEY},
-    body: JSON.stringify(data)
-  })
-  .then(function(){ isSyncing = false; })
-  .catch(function(){ isSyncing = false; });
-}
-
-function createCloudBin(){
-  var data = {
-    expenses: expenses, planned: planned,
-    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
-    updated: new Date().toISOString()
-  };
-  fetch(JBIN_URL + '/b', {
-    method: 'POST',
-    headers: {
-      'Content-Type':'application/json',
-      'X-Master-Key': JBIN_KEY,
-      'X-Bin-Name': getBinName(),
-      'X-Bin-Private': 'true'
-    },
-    body: JSON.stringify(data)
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    if(data.metadata && data.metadata.id){
-      cloudBinId = data.metadata.id;
-      localStorage.setItem('remont_bin_' + getBinName(), cloudBinId);
-    }
-  })
-  .catch(function(){});
-}
-
-// ══════════════════════════════════════════════
-// AGREEMENT
-// ══════════════════════════════════════════════
-var agreeChecked = false;
-
-function showAgreementIfNeeded(){
-  if(localStorage.getItem('remont_agreed')) return false;
-  document.getElementById('agreementScreen').style.display = 'flex';
-  return true;
-}
-
-function toggleAgree(){
-  agreeChecked = !agreeChecked;
-  var chk = document.getElementById('agreeCheck');
-  var btn = document.getElementById('agreeBtn');
-  if(agreeChecked){
-    chk.innerHTML = '✓'; chk.style.background='var(--accent)'; chk.style.borderColor='var(--accent)'; chk.style.color='#fff';
-    btn.style.background='var(--accent)'; btn.style.color='#fff'; btn.style.cursor='pointer';
-  } else {
-    chk.innerHTML = ''; chk.style.background='var(--card)'; chk.style.borderColor='var(--border)';
-    btn.style.background='var(--border)'; btn.style.color='var(--muted)'; btn.style.cursor='not-allowed';
-  }
-}
-
-function acceptAgreement(){
-  if(!agreeChecked) return;
-  localStorage.setItem('remont_agreed','1');
-  document.getElementById('agreementScreen').style.display='none';
-}
-
-// ══════════════════════════════════════════════
-// ONBOARDING
-// ══════════════════════════════════════════════
-function showOnboarding(){
-  // Populate zone preview
-  var prev = document.getElementById('obZonePreview');
-  if(prev){
-    prev.innerHTML = zonesArr.map(function(z){
-      return '<div style="padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;font-size:13px;font-weight:700">'+z.icon+' '+z.name+'</div>';
-    }).join('');
-  }
-  var el = document.getElementById('onboarding');
-  el.style.display = 'flex';
-}
-
-function obNext(step){
-  if(step === 1){
-    var budget = parseFloat(document.getElementById('obBudget').value) || 0;
-    if(budget > 0){ settings.budget = budget; saveSett(); }
-  }
-  document.getElementById('ob'+step).style.display = 'none';
-  document.getElementById('ob'+(step+1)).style.display = 'block';
-}
-
-function obSkip(step){
-  document.getElementById('ob'+step).style.display = 'none';
-  document.getElementById('ob'+(step+1)).style.display = 'block';
-}
-
-function finishOnboarding(){
-  document.getElementById('onboarding').style.display = 'none';
-  localStorage.setItem(uk('onboarded'), '1');
-  renderDashboard();
-}
-
-// ══════════════════════════════════════════════
-// EXPORT / IMPORT
-// ══════════════════════════════════════════════
-function exportData(){
-  var data = {
-    version: 1,
-    user: currentUser,
-    exported: new Date().toISOString(),
-    expenses: expenses,
-    planned: planned,
-    settings: settings,
-    zones: zonesArr
-  };
-  var json = JSON.stringify(data, null, 2);
-  var blob = new Blob([json], {type:'application/json'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  var dateStr = new Date().toLocaleDateString('ru-RU').replace(/\./g,'-');
-  a.href = url;
-  a.download = 'remont_backup_'+dateStr+'.json';
-  a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
-}
-
-function importData(e){
-  var file = e.target.files[0];
-  if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev){
-    try{
-      var data = JSON.parse(ev.target.result);
-      if(!data.expenses) throw new Error('Неверный формат файла');
-      confirm2('Загрузить данные из резервной копии?\nТекущие данные будут заменены.', function(){
-        if(data.expenses) { expenses = data.expenses; saveExp(); }
-        if(data.planned)  { planned  = data.planned;  savePlan(); }
-        if(data.settings) { settings = data.settings; saveSett(); }
-        if(data.zones)    { zonesArr = data.zones; saveZones(); rebuildZones(); buildAllZoneSelects(); }
-        closeSettings();
-        refreshView();
-        flashFab('✅ Данные восстановлены', 'var(--green)');
-      });
-    } catch(err){
-      alert('Ошибка при загрузке файла: '+err.message);
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-}
-
-// ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
 function initApp(){
@@ -1235,13 +996,6 @@ function loginAs(name){
   buildAllZoneSelects();
   var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length === 0;
   if(isNew){ showOnboarding(); } else { renderDashboard(); }
-}
-
-function logout(){
-  confirm2('Выйти из профиля "'+currentUser+'"?\nДанные сохранятся.', function(){
-    localStorage.removeItem('remont_user');
-    location.reload();
-  });
 }
 
 // ══════════════════════════════════════════════
@@ -1564,8 +1318,6 @@ function openAddModal(){
   document.getElementById('eStore').value = '';
   document.getElementById('eNote').value = '';
   document.getElementById('eDelBtn').style.display = 'none';
-  currentPhotos = [];
-  document.getElementById('ePreviews').innerHTML = '';
   buildZoneSelect('eZone','Общие зоны');
   openOverlay('expOverlay');
   setTimeout(function(){ document.getElementById('eAmt').focus(); }, 200);
@@ -1584,9 +1336,7 @@ function openEditExp(id){
   document.getElementById('eStore').value = e.store||'';
   document.getElementById('eNote').value = e.note||'';
   document.getElementById('eDelBtn').style.display = '';
-  currentPhotos = (e.photos||[]).slice();
   buildZoneSelect('eZone', e.zone||'Общие зоны');
-  renderPhotoPreviews();
   openOverlay('expOverlay');
 }
 
@@ -1604,7 +1354,6 @@ function saveExp2(){
     store: document.getElementById('eStore').value.trim(),
     date: document.getElementById('eDate').value,
     note: document.getElementById('eNote').value.trim(),
-    photos: currentPhotos.slice()
   };
   if(editingExpId){
     var idx = expenses.findIndex ? expenses.findIndex(function(x){ return x.id===editingExpId; }) : -1;
@@ -1637,37 +1386,6 @@ function delExp(id){
   });
 }
 
-// ══════════════════════════════════════════════
-// PHOTO
-// ══════════════════════════════════════════════
-document.getElementById('fCamera').onchange = function(e){ handlePhotoInput(e); };
-document.getElementById('fGallery').onchange = function(e){ handlePhotoInput(e); };
-
-function handlePhotoInput(e){
-  var files = Array.prototype.slice.call(e.target.files);
-  files.forEach(function(file){
-    var reader = new FileReader();
-    reader.onload = function(ev){
-      currentPhotos.push(ev.target.result);
-      renderPhotoPreviews();
-    };
-    reader.readAsDataURL(file);
-  });
-  e.target.value='';
-}
-
-function renderPhotoPreviews(){
-  var html='';
-  currentPhotos.forEach(function(src, i){
-    html += '<div class="prev-wrap"><img class="prev-img" src="'+src+'" onclick="openLBDirect(currentPhotos,'+i+')"/>'
-      +'<button class="prev-rm" onclick="removePhoto('+i+')">✕</button></div>';
-  });
-  document.getElementById('ePreviews').innerHTML = html;
-}
-
-function removePhoto(i){ currentPhotos.splice(i,1); renderPhotoPreviews(); }
-
-// ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // ANALYTICS ENGINE (РФ рынок 2026)
 // ══════════════════════════════════════════════
