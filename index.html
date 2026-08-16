@@ -260,7 +260,7 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
     <div style="font-size:17px;font-weight:900;letter-spacing:.14em;color:#2c2219">ТАТЕВ БАГРЯН</div>
     <div style="font-size:10px;font-weight:600;letter-spacing:.2em;color:var(--muted)">БУХГАЛТЕРСКОЕ АГЕНТСТВО</div>
   </div>
-  <h2 style="font-size:20px;font-weight:800;color:var(--accent);margin-bottom:6px">Мой ремонт</h2>
+  <h2 style="font-size:20px;font-weight:800;color:var(--accent);margin-bottom:4px">Мой ремонт</h2>
   <p style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5">Планируй ремонт, контролируй расходы<br>и укладывайся в бюджет</p>
   <div class="auth-card">
     <div class="field" style="margin-bottom:12px">
@@ -330,12 +330,18 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
 <header>
   <div class="header-top">
     <div class="logo">
-      <svg width="30" height="34" viewBox="0 0 30 34" fill="none">
-        <path d="M3 34V16C3 8.268 8.268 3 16 3C23.732 3 29 8.268 29 16V34" stroke="#8fa8b8" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="M3 34V16C3 8.268 8.268 3 16 3" stroke="#9b5a3c" stroke-width="2.5" stroke-linecap="round"/>
-        <rect x="0" y="31" width="30" height="3" rx="1.5" fill="#9b5a3c"/>
-      </svg>
-      <div><div class="logo-text">Ремонт</div><div class="logo-sub">учёт расходов</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M16 3L3 14H7V28H13V20H19V28H25V14H29L16 3Z" fill="#9b5a3c" opacity=".15"/>
+          <path d="M16 3L3 14H7V28H13V20H19V28H25V14H29L16 3Z" stroke="#9b5a3c" stroke-width="1.8" stroke-linejoin="round"/>
+          <rect x="13" y="20" width="6" height="8" rx="1" fill="#9b5a3c" opacity=".3"/>
+          <path d="M16 3L3 14" stroke="#8fa8b8" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div style="font-size:14px;font-weight:900;letter-spacing:.06em;color:var(--accent);line-height:1.1">МОЙ РЕМОНТ</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--muted);line-height:1">КОНТРОЛЬ РАСХОДОВ</div>
+        </div>
+      </div>
     </div>
     <div class="header-right">
       <div><div id="hAddress" style="font-size:10px;color:var(--muted);font-weight:600;text-align:right;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:none"></div>
@@ -401,7 +407,14 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
 
 <!-- WATERMARK -->
 <div style="text-align:center;padding:6px 16px 10px;font-size:10px;color:var(--muted);letter-spacing:.04em;line-height:1.6;pointer-events:none">
-  © Tatev.profbuh · Бухгалтерское агентство Татев Багрян · ТГ/Тел: +79169240099
+  <svg width="54" height="13" viewBox="0 0 54 13" fill="none" style="display:block;margin:0 auto 4px">
+    <circle cx="6.5" cy="6.5" r="6" fill="#E8B84B"/>
+    <circle cx="27" cy="6.5" r="6" fill="#D4622A"/>
+    <circle cx="47.5" cy="6.5" r="6" fill="#4A7C3F"/>
+  </svg>
+  <div style="font-size:10px;font-weight:800;letter-spacing:.1em;color:#2c2219;margin-bottom:2px">ТАТЕВ БАГРЯН</div>
+  <div style="font-size:9px;color:var(--muted);letter-spacing:.06em">БУХГАЛТЕРСКОЕ АГЕНТСТВО</div>
+  <div style="font-size:9px;color:var(--muted);margin-top:3px">© Tatev.profbuh · ТГ/Тел: +79169240099</div>
 </div>
 
 <button class="fab" id="mainFab" onclick="openAddModal()">
@@ -778,7 +791,7 @@ function saveToCloud(){
     createCloudBin(); return;
   }
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 1000);
+  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 500);
 }
 
 function doSaveToCloud(){
@@ -921,7 +934,7 @@ function saveToCloud(){
     createCloudBin(); return;
   }
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 1000);
+  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 500);
 }
 
 function doSaveToCloud(){
@@ -1150,35 +1163,46 @@ function loginWithCode(name, code){
   currentUser = name;
   document.getElementById('authScreen').style.display = 'none';
   var badge = document.getElementById('userBadge');
-  if(badge){ badge.textContent = '👤 ' + name; badge.onclick = function(){ logout(); }; }
-  
-  // Show loading indicator
-  if(badge) badge.textContent = '⏳ Загрузка...';
-  
-  // Try to load from cloud first
+  if(badge){ badge.textContent = '⏳ Загрузка...'; badge.onclick = function(){ logout(); }; }
+  // Try cloud first
   loadFromCloud(function(loaded){
     if(badge) badge.textContent = '👤 ' + name;
-    if(loaded){
-      // Cloud data loaded - also update localStorage
-      saveExp(); savePlan(); saveSett(); saveZones();
-    } else {
-      // No cloud data - load from localStorage
+    if(!loaded){
+      // No cloud data - load localStorage
       loadAll();
+      // Create cloud bin for future syncs
+      setTimeout(function(){ createCloudBin(); }, 500);
     }
     buildAllZoneSelects();
     if(!zonesArr || zonesArr.length===0){ zonesArr=DEFAULT_ZONES.slice(); rebuildZones(); }
-    var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length === 0;
+    var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length===0;
     if(isNew){ showOnboarding(); } else { renderDashboard(); }
   });
 }
 
 function logout(){
   if(!confirm('Выйти из аккаунта?')) return;
-  localStorage.removeItem('remont_code');
-  localStorage.removeItem('remont_name');
+  // Save to cloud before logout
+  var binId = cloudBinId || localStorage.getItem('remont_bin_' + getBinName());
+  if(binId){
+    var data = {expenses:expenses,planned:planned,settings:settings,zones:zonesArr,zonePhotos:zonePhotos,updated:new Date().toISOString()};
+    // Synchronous save via sendBeacon
+    var blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    navigator.sendBeacon && navigator.sendBeacon('https://api.jsonbin.io/v3/b/'+binId, blob);
+    // Also try fetch
+    fetch('https://api.jsonbin.io/v3/b/'+binId, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JBIN_KEY},
+      body:JSON.stringify(data)
+    }).catch(function(){});
+  }
+  // Clear local state
+  var binKey = 'remont_bin_' + getBinName();
+  var binVal = localStorage.getItem(binKey);
+  localStorage.clear();
+  // Keep bin ID for next login with same code
+  if(binVal) localStorage.setItem(binKey, binVal);
   currentUser = '';
-  expenses = []; planned = []; settings = {budget:0,funds:[]};
-  zonesArr = DEFAULT_ZONES.slice(); rebuildZones();
   location.reload();
 }
 
@@ -2586,7 +2610,7 @@ function exportPDF(){
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт</title>'
     +'<style>'+css+'</style></head><body>'
     +'<button class="pbtn" onclick="window.print()">🖨 Сохранить PDF</button>'
-    +'<h1>🏠 Отчёт по ремонту</h1>'+(settings.address?'<div style="font-size:15px;font-weight:700;color:#9b5a3c;margin:4px 0 8px">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
+    +'<h1>Отчёт по ремонту</h1><div style="font-size:12px;color:#8a7a6a;margin-bottom:8px">Татев Багрян · Бухгалтерское агентство Tatev.profbuh · +79169240099</div>'+(settings.address?'<div style="font-size:15px;font-weight:700;color:#9b5a3c;margin:4px 0 8px">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
     +summGrid+budgBlock+fundsBlock
     +'<h2>По категориям — факт</h2>'
     +'<table><thead><tr><th>Категория</th><th class="r">Сумма</th><th class="r">Доля</th></tr></thead>'
