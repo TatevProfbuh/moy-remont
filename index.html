@@ -302,6 +302,17 @@ window.supabase = supabase;
 </div>
 
 
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" style="display:flex;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <svg width="60" height="14" viewBox="0 0 60 14" fill="none">
+    <circle cx="7" cy="7" r="6" fill="#E8B84B"/>
+    <circle cx="30" cy="7" r="6" fill="#D4622A"/>
+    <circle cx="53" cy="7" r="6" fill="#4A7C3F"/>
+  </svg>
+  <div style="font-size:15px;font-weight:800;color:var(--accent);letter-spacing:.08em">МОЙ РЕМОНТ</div>
+  <div style="font-size:12px;color:var(--muted)">Загрузка...</div>
+</div>
+
 <!-- ACTIVATION KEY SCREEN -->
 <div id="keyScreen" style="display:none;position:fixed;inset:0;z-index:9200;background:var(--bg);align-items:center;justify-content:center;padding:24px">
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:22px;padding:28px 22px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(100,70,40,.2);text-align:center">
@@ -376,7 +387,7 @@ window.supabase = supabase;
   🔒 Демо-режим: до 5 записей, PDF и AI недоступны · <span style="text-decoration:underline;cursor:pointer" onclick="showKeyScreen()">Ввести ключ активации</span>
 </div>
 
-<header>
+<header id="appHeader" style="display:none">
   <div class="header-top">
     <div class="logo">
       <svg width="28" height="34" viewBox="0 0 30 34" fill="none">
@@ -404,7 +415,7 @@ window.supabase = supabase;
   </div>
 </header>
 
-<main>
+<main id="appMain" style="display:none">
   <div id="v-dashboard" class="view active">
     <div id="dBudget"></div>
     <div id="dFunds"></div>
@@ -418,6 +429,9 @@ window.supabase = supabase;
   <div id="v-list" class="view">
     <div class="filter-row" id="lFilters"></div>
     <div id="lList"></div>
+    <div style="padding:8px 0 4px">
+      <button onclick="openAddModal()" style="width:100%;background:none;border:1.5px dashed var(--border);border-radius:var(--r);padding:14px;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer">+ Добавить расход вручную</button>
+    </div>
   </div>
   <div id="v-zones" class="view">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -452,7 +466,7 @@ window.supabase = supabase;
   © Tatev.profbuh · Бухгалтерское агентство Татев Багрян · ТГ/Тел: +79169240099
 </div>
 
-<button class="fab" id="mainFab" onclick="openAddModal()">
+<button class="fab" id="mainFab" style="display:none" onclick="openAddModal()">
   <span style="font-size:19px">+</span> Добавить расход
 </button>
 
@@ -577,7 +591,7 @@ window.supabase = supabase;
     <div class="field"><label>Заметка</label><input type="text" id="pNote" placeholder="Поставщик, ссылка..."/></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closePlanModal()">Отмена</button>
-      <button class="btn-save" onclick="savePlan()">Сохранить</button>
+      <button class="btn-save" onclick="savePlan2()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1107,6 +1121,7 @@ function resetPassword(){
 // ON AUTH SUCCESS — load data and start app
 // ══════════════════════════════════════════════
 function onAuthSuccess(){
+  showApp();
   document.getElementById('authScreen').style.display = 'none';
   currentUser = (supaUser.user_metadata && supaUser.user_metadata.display_name)
     ? supaUser.user_metadata.display_name
@@ -1373,70 +1388,90 @@ function importData(e){
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
+function showApp(){
+  var ls = document.getElementById('loadingScreen');
+  if(ls) ls.style.display = 'none';
+  var h = document.getElementById('appHeader');
+  if(h) h.style.display = '';
+  var m = document.getElementById('appMain');
+  if(m) m.style.display = '';
+  var fab = document.getElementById('mainFab');
+  if(fab) fab.style.display = '';
+}
+
+function showAuthOnly(){
+  var ls = document.getElementById('loadingScreen');
+  if(ls) ls.style.display = 'none';
+}
+
 function initApp(){
+  // Show loading screen while checking auth
   if(!initSupabase()){
-    showAuthScreenLogin(); return;
+    showAuthOnly();
+    showKeyOrAuth();
+    return;
   }
   wrapSaveFunctions();
-  supa.auth.getSession().then(function(res){
-    if(res.data && res.data.session && res.data.session.user){
-      // Verify session is still valid by getting user
-      supa.auth.getUser().then(function(userRes){
-        if(userRes.data && userRes.data.user && !userRes.error){
-          // Session valid
-          supaUser = userRes.data.user;
-          onAuthSuccess();
-        } else {
-          // Session expired or user deleted - clear and show login
-          localStorage.clear();
-          showAuthScreenLogin();
-        }
-      }).catch(function(){
-        localStorage.clear();
-        showAuthScreenLogin();
-      });
+  supa.auth.getUser().then(function(res){
+    if(res.data && res.data.user && !res.error){
+      supaUser = res.data.user;
+      showApp();
+      onAuthSuccess();
     } else {
-      showAuthScreenLogin();
+      localStorage.clear();
+      try{ sessionStorage.clear(); }catch(e){}
+      showAuthOnly();
+      showKeyOrAuth();
     }
   }).catch(function(){
-    showAuthScreenLogin();
+    localStorage.clear();
+    try{ sessionStorage.clear(); }catch(e){}
+    showAuthOnly();
+    showKeyOrAuth();
   });
   supa.auth.onAuthStateChange(function(event, session){
     if(event === 'SIGNED_IN' && session && session.user && !supaUser){
       supaUser = session.user;
+      showApp();
       onAuthSuccess();
     }
     if(event === 'SIGNED_OUT'){
       supaUser = null; currentUser = '';
+      localStorage.clear();
       location.reload();
     }
   });
 }
 
-function showAuthScreenLogin(){
-  // First check if key is activated
+function clearSupabaseTokens(){
+  // Remove only Supabase auth tokens, keep remont_ keys
+  var toRemove = [];
+  for(var i=0; i<localStorage.length; i++){
+    var k = localStorage.key(i);
+    if(k && (k.indexOf('sb-') === 0 || k.indexOf('supabase') !== -1)){
+      toRemove.push(k);
+    }
+  }
+  toRemove.forEach(function(k){ localStorage.removeItem(k); });
+}
+
+function showKeyOrAuth(){
   var activatedKey = localStorage.getItem('remont_activated_key');
   if(!activatedKey){
-    // No key — show key screen first
+    // No key — show key screen
     var ks = document.getElementById('keyScreen');
     if(ks){
       ks.style.display = 'flex';
-      document.getElementById('keyInput').onkeydown = function(e){
-        if(e.key === 'Enter') activateKey();
-      };
-      // Add demo link if not already there
-      if(!ks.querySelector('.demo-link')){
-        var demoLink = document.createElement('div');
-        demoLink.className = 'demo-link';
-        demoLink.style.cssText = 'margin-top:14px;font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline';
-        demoLink.textContent = 'Попробовать демо (до 5 записей)';
-        demoLink.onclick = function(){ enterDemoMode(); showLoginForm(); };
-        ks.querySelector('div').appendChild(demoLink);
-      }
+      var ki = document.getElementById('keyInput');
+      if(ki) ki.onkeydown = function(e){ if(e.key==='Enter') activateKey(); };
     }
-    return;
+  } else {
+    showLoginForm();
   }
-  showLoginForm();
+}
+
+function showAuthScreenLogin(){
+  showKeyOrAuth();
 }
 
 function showLoginForm(){
@@ -2907,7 +2942,7 @@ function exportPDF(){
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт</title>'
     +'<style>'+css+'</style></head><body>'
     +'<button class="pbtn" onclick="window.print()">🖨 Сохранить PDF</button>'
-    +'<h1>🏠 Отчёт по ремонту</h1><div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
+    +'<h1>🏠 Отчёт по ремонту</h1>'+(settings.address?'<div class="sub" style="font-size:16px;font-weight:700;color:#9b5a3c">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
     +summGrid+budgBlock+fundsBlock
     +'<h2>По категориям — факт</h2>'
     +'<table><thead><tr><th>Категория</th><th class="r">Сумма</th><th class="r">Доля</th></tr></thead>'
