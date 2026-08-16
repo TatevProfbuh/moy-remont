@@ -2290,8 +2290,13 @@ function exportPDF(){
     +'.sv{font-size:18px;font-weight:800;color:#9b5a3c}'
     +'.sl{font-size:10px;color:#8a7a6a;text-transform:uppercase;margin-top:3px}'
     +'.green{color:#6b8c6b}.blue{color:#5a7d91}.red{color:#c04040}'
-    +'.pbtn{position:fixed;top:14px;right:16px;background:#9b5a3c;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer}'
-    +'@media print{.pbtn{display:none}}';
+    +'.pbtn{position:fixed;top:14px;right:16px;background:#9b5a3c;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;z-index:9999}'
+    +'.print-hint{margin:8px 0 18px;color:#8a7a6a;font-size:11px}'
+    +'table,tr,.sc{break-inside:avoid;page-break-inside:avoid}'
+    +'thead{display:table-header-group}tfoot{display:table-row-group}'
+    +'@page{size:A4;margin:12mm}'
+    +'@media print{body{padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pbtn,.print-hint{display:none!important}h2{break-after:avoid;page-break-after:avoid}table{font-size:11px}}'
+    +'@media(max-width:600px){body{padding:20px 14px}.pbtn{position:static;width:100%;margin-bottom:10px}.g3,.g2{grid-template-columns:1fr}.sv{font-size:16px}table{font-size:11px}th,td{padding:5px 4px}}';
 
   var summGrid='<div class="g3">'
     +'<div class="sc"><div class="sv">'+fmt(total)+'</div><div class="sl">Факт потрачено</div></div>'
@@ -2327,7 +2332,8 @@ function exportPDF(){
   var uname = currentUser ? 'Профиль: '+currentUser+' · ' : '';
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт</title>'
     +'<style>'+css+'</style></head><body>'
-    +'<button class="pbtn" onclick="window.print()">🖨 Сохранить PDF</button>'
+    +'<button class="pbtn" onclick="window.print()">🖨 Печать / сохранить PDF</button>'
+    +'<div class="print-hint">Откройте печать и выберите «Сохранить как PDF» / «Save as PDF». На телефоне пункт может находиться в меню «Поделиться» или «Печать».</div>'
     +'<h1>Отчёт по ремонту</h1>'+(settings.address?'<div style="font-size:15px;font-weight:700;color:#9b5a3c;margin:4px 0 8px">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
     +summGrid+budgBlock+fundsBlock
     +'<h2>По категориям — факт</h2>'
@@ -2339,13 +2345,44 @@ function exportPDF(){
     +'<tbody>'+expRows+'</tbody><tfoot><tr><td colspan="5">ИТОГО</td><td class="r">'+fmt(total)+'</td></tr></tfoot></table>'
     +'<div style="margin-top:32px;padding-top:14px;border-top:1px solid #e6ddd3;text-align:center;font-size:11px;color:#8a7a6a;line-height:1.6">Татев Багрян · Бухгалтерское агентство Tatev.profbuh<br>ТГ/Тел: +79169240099</div>'+'</body></html>';
 
-  try{ pw.document.open(); pw.document.write(html); pw.document.close(); }
-  catch(err){
-    pw.close();
-    var b=new Blob([html],{type:'text/html;charset=utf-8'});
-    var u=URL.createObjectURL(b);
-    var a=document.createElement('a'); a.href=u; a.download='remont.html'; a.click();
-    setTimeout(function(){ URL.revokeObjectURL(u); },10000);
+  try{
+    // Основной кроссбраузерный способ: полноценная HTML-страница через Blob URL.
+    // Окно уже открыто выше синхронно, поэтому блокировщик всплывающих окон не мешает.
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var blobUrl = URL.createObjectURL(blob);
+    var loaded = false;
+
+    pw.onload = function(){
+      loaded = true;
+      try{ pw.focus(); }catch(e){}
+    };
+    pw.location.replace(blobUrl);
+
+    // Fallback для браузеров/режимов, где Blob-навигация новой вкладки ограничена.
+    setTimeout(function(){
+      if(!loaded){
+        try{
+          pw.document.open();
+          pw.document.write(html);
+          pw.document.close();
+          pw.focus();
+        }catch(e){}
+      }
+    }, 1800);
+
+    // URL нужен только для загрузки страницы; оставляем запас времени для мобильных браузеров.
+    setTimeout(function(){ try{ URL.revokeObjectURL(blobUrl); }catch(e){} }, 300000);
+  } catch(err){
+    // Финальный fallback — открыть отчёт непосредственно в уже созданной вкладке.
+    try{
+      pw.document.open();
+      pw.document.write(html);
+      pw.document.close();
+      pw.focus();
+    }catch(e){
+      try{ pw.close(); }catch(e2){}
+      alert('Не удалось сформировать отчёт. Попробуй ещё раз или разреши всплывающие окна.');
+    }
   }
 }
 
