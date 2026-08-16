@@ -1405,14 +1405,24 @@ function showAuthOnly(){
 }
 
 function initApp(){
-  // Show loading screen while checking auth
   if(!initSupabase()){
-    showAuthOnly();
-    showKeyOrAuth();
-    return;
+    showAuthOnly(); showKeyOrAuth(); return;
   }
   wrapSaveFunctions();
+  // Timeout — if Supabase doesn't respond in 4 sec, show auth
+  var authDone = false;
+  var timeout = setTimeout(function(){
+    if(!authDone){
+      authDone = true;
+      localStorage.clear();
+      showAuthOnly();
+      showKeyOrAuth();
+    }
+  }, 4000);
   supa.auth.getUser().then(function(res){
+    if(authDone) return;
+    authDone = true;
+    clearTimeout(timeout);
     if(res.data && res.data.user && !res.error){
       supaUser = res.data.user;
       showApp();
@@ -1424,8 +1434,10 @@ function initApp(){
       showKeyOrAuth();
     }
   }).catch(function(){
+    if(authDone) return;
+    authDone = true;
+    clearTimeout(timeout);
     localStorage.clear();
-    try{ sessionStorage.clear(); }catch(e){}
     showAuthOnly();
     showKeyOrAuth();
   });
