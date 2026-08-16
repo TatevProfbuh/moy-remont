@@ -560,7 +560,7 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
         📂 Загрузить данные<input type="file" accept=".json" id="importFile" style="display:none" onchange="importData(event)"/>
       </label>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:4px;line-height:1.5">Сохрани файл резервной копии — он поможет восстановить данные на новом устройстве</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px;line-height:1.5">Для переноса на другой браузер или устройство: сначала «Сохранить данные», затем на новом устройстве — «Загрузить данные»</div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="btn-cancel" onclick="closeSettings()">Закрыть</button>
       <button class="btn-save" onclick="saveSettingsClose()">Сохранить</button>
@@ -905,6 +905,16 @@ function isValidCode(code){
   return VALID_CODES.indexOf(code.toUpperCase().trim()) !== -1;
 }
 
+var DEMO_CODE = 'TAT-DEMO-2026';
+var DEMO_LIMIT = 5;
+function isDemoMode(){
+  return (localStorage.getItem('remont_code') || '').toUpperCase() === DEMO_CODE;
+}
+function demoLimitMessage(kind){
+  var label = kind === 'plan' ? 'плановых расходов' : 'фактических расходов';
+  alert('Демо-доступ позволяет добавить до ' + DEMO_LIMIT + ' ' + label + '.\n\nВы уже попробовали основные возможности сервиса. Для ведения ремонта без ограничений приобретите полный доступ.');
+}
+
 function authSubmit(){
   var name = document.getElementById('authName').value.trim();
   var code = document.getElementById('authCode').value.trim().toUpperCase();
@@ -927,7 +937,7 @@ function loginWithCode(name, code){
   if(badge){ badge.textContent = '⏳ Загрузка...'; badge.onclick = function(){ logout(); }; }
   // Try cloud first
   loadFromCloud(function(loaded){
-    if(badge) badge.textContent = '👤 ' + name;
+    if(badge) badge.textContent = (isDemoMode() ? '🧪 DEMO · ' : '👤 ') + name;
     if(!loaded){
       // No cloud data - load localStorage
       loadAll();
@@ -1308,6 +1318,7 @@ function delPlan(id){
 // ADD/EDIT EXPENSE MODAL
 // ══════════════════════════════════════════════
 function openAddModal(){
+  if(isDemoMode() && expenses.length >= DEMO_LIMIT){ demoLimitMessage('expense'); return; }
   editingExpId = null;
   document.getElementById('expModalTitle').textContent = 'Новый расход';
   document.getElementById('eId').value = '';
@@ -1343,6 +1354,7 @@ function openEditExp(id){
 function closeExpModal(){ closeOverlay('expOverlay'); }
 
 function saveExp2(){
+  if(isDemoMode() && !editingExpId && expenses.length >= DEMO_LIMIT){ closeExpModal(); demoLimitMessage('expense'); return; }
   var amt = parseFloat(document.getElementById('eAmt').value);
   if(!amt||amt<=0){ document.getElementById('eAmt').style.borderColor='var(--danger)'; setTimeout(function(){ document.getElementById('eAmt').style.borderColor=''; },1500); return; }
   var obj = {
@@ -1796,8 +1808,17 @@ function exportEstimate(){
 
 function importEstimateToPlanned(){
   if(!estimateItems.length){ alert('Смета пуста'); return; }
-  confirm2('Перенести все позиции сметы в план?\nОни появятся в разделе «Плановые расходы».', function(){
-    estimateItems.forEach(function(item){
+  var itemsToImport = estimateItems;
+  if(isDemoMode()){
+    var remaining = Math.max(0, DEMO_LIMIT - planned.length);
+    if(remaining === 0){ demoLimitMessage('plan'); return; }
+    itemsToImport = estimateItems.slice(0, remaining);
+  }
+  var msg = isDemoMode()
+    ? 'В смете найдено ' + estimateItems.length + ' позиций. В демо-доступе в план можно перенести до ' + DEMO_LIMIT + ' позиций. Сейчас будет перенесено: ' + itemsToImport.length + '.'
+    : 'Перенести все позиции сметы в план?\nОни появятся в разделе «Плановые расходы».';
+  confirm2(msg, function(){
+    itemsToImport.forEach(function(item){
       planned.push({
         id:'ep'+Date.now()+'_'+Math.random().toString(36).slice(2),
         desc: item.name,
@@ -2104,6 +2125,7 @@ function estimatePricesWithAI(){
 // PLAN MODAL
 // ══════════════════════════════════════════════
 function openAddPlan(){
+  if(isDemoMode() && planned.length >= DEMO_LIMIT){ demoLimitMessage('plan'); return; }
   editingPlanId = null;
   document.getElementById('planModalTitle').textContent = 'Плановый расход';
   document.getElementById('pId').value='';
@@ -2132,6 +2154,7 @@ function openEditPlan(id){
 function closePlanModal(){ closeOverlay('planOverlay'); }
 
 function savePlan2(){
+  if(isDemoMode() && !editingPlanId && planned.length >= DEMO_LIMIT){ closePlanModal(); demoLimitMessage('plan'); return; }
   var amt = parseFloat(document.getElementById('pAmt').value)||0;
   var desc = document.getElementById('pDesc').value.trim();
   if(!desc){
@@ -2384,6 +2407,90 @@ function exportPDF(){
       alert('Не удалось сформировать отчёт. Попробуй ещё раз или разреши всплывающие окна.');
     }
   }
+}
+
+// ══════════════════════════════════════════════
+// BACKUP EXPORT / IMPORT
+// ══════════════════════════════════════════════
+function exportData(){
+  try{
+    var data = {
+      version: 2,
+      app: 'moy-remont',
+      user: currentUser || '',
+      exported: new Date().toISOString(),
+      expenses: expenses || [],
+      planned: planned || [],
+      settings: settings || {budget:0,funds:[],address:''},
+      zones: zonesArr || [],
+      estimate: estimateItems || []
+    };
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], {type:'application/json;charset=utf-8'});
+    var dateStr = new Date().toLocaleDateString('ru-RU').replace(/\./g,'-');
+    var filename = 'moy-remont-backup_'+dateStr+'.json';
+
+    // Standard browser download (Chrome/Edge/Firefox/Safari desktop)
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    flashFab('✅ Резервная копия сохранена', 'var(--green)');
+  }catch(err){
+    alert('Не удалось сохранить резервную копию: '+err.message);
+  }
+}
+
+function importData(e){
+  var file = e.target.files && e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var data = JSON.parse(ev.target.result);
+      if(!data || (!Array.isArray(data.expenses) && !Array.isArray(data.planned))){
+        throw new Error('Это не файл резервной копии сервиса «Мой ремонт»');
+      }
+    }catch(err){
+      alert('Не удалось загрузить файл: '+err.message);
+      e.target.value='';
+      return;
+    }
+
+    var data = JSON.parse(ev.target.result);
+    confirm2('Загрузить резервную копию?\nТекущие данные в этом браузере будут заменены.', function(){
+      expenses = Array.isArray(data.expenses) ? data.expenses : [];
+      planned = Array.isArray(data.planned) ? data.planned : [];
+      settings = data.settings || {budget:0,funds:[],address:''};
+      zonesArr = Array.isArray(data.zones) && data.zones.length ? data.zones : DEFAULT_ZONES.slice();
+      estimateItems = Array.isArray(data.estimate) ? data.estimate : (Array.isArray(data.estimateItems) ? data.estimateItems : []);
+
+      localStorage.setItem(uk('exp'), JSON.stringify(expenses));
+      localStorage.setItem(uk('planned'), JSON.stringify(planned));
+      localStorage.setItem(uk('settings'), JSON.stringify(settings));
+      localStorage.setItem(uk('zones'), JSON.stringify(zonesArr));
+      localStorage.setItem(uk('estimate'), JSON.stringify(estimateItems));
+      localStorage.setItem(uk('onboarded'), '1');
+
+      rebuildZones();
+      buildAllZoneSelects();
+      saveToCloud();
+      closeSettings();
+      refreshView();
+      flashFab('✅ Данные восстановлены', 'var(--green)');
+      e.target.value='';
+    });
+  };
+  reader.onerror = function(){
+    alert('Не удалось прочитать файл резервной копии.');
+    e.target.value='';
+  };
+  reader.readAsText(file, 'utf-8');
 }
 
 // ══════════════════════════════════════════════
