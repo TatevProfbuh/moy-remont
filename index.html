@@ -672,7 +672,9 @@ var pickedIcon = '🏠';
 function uk(k){
   var code = localStorage.getItem('remont_code') || '';
   var prefix = code ? code.replace(/-/g,'_').toLowerCase()+'_' : '';
-  return prefix + (currentUser ? currentUser+'_'+k : k);
+  // Normalize user name - trim only, keep case
+  var user = (currentUser || '').trim();
+  return prefix + (user ? user+'_'+k : k);
 }
 
 function loadAll(){
@@ -685,10 +687,10 @@ function loadAll(){
   rebuildZones();
 }
 
-function saveExp(){ localStorage.setItem(uk('exp'), JSON.stringify(expenses)); }
-function saveSett(){ localStorage.setItem(uk('settings'), JSON.stringify(settings)); }
-function savePlan(){ localStorage.setItem(uk('planned'), JSON.stringify(planned)); }
-function saveZones(){ localStorage.setItem(uk('zones'), JSON.stringify(zonesArr)); }
+function saveExp(){ localStorage.setItem(uk('exp'), JSON.stringify(expenses)); saveToCloud(); }
+function saveSett(){ localStorage.setItem(uk('settings'), JSON.stringify(settings)); saveToCloud(); }
+function savePlan(){ localStorage.setItem(uk('planned'), JSON.stringify(planned)); saveToCloud(); }
+function saveZones(){ localStorage.setItem(uk('zones'), JSON.stringify(zonesArr)); saveToCloud(); }
 function saveZonePhotos(){ localStorage.setItem(uk('zonePhotos'), JSON.stringify(zonePhotos)); }
 
 function rebuildZones(){
@@ -721,6 +723,108 @@ function seedIfNeeded(){
   // No demo data — clean start for each user
 }
 
+
+
+// ══════════════════════════════════════════════
+// JSONBIN CLOUD SYNC
+// ══════════════════════════════════════════════
+var JBIN_KEY = '$2a$10$71CFEBIQcWjhX5BJ6j7U9upaa6bj23OTxmEh/Wx82/zuB5aGLKp36';
+var JBIN_URL = 'https://api.jsonbin.io/v3';
+var cloudBinId = null;
+var syncTimer = null;
+var isSyncing = false;
+
+function getBinName(){
+  var code = localStorage.getItem('remont_code') || '';
+  return 'remont_' + code.toLowerCase().replace(/-/g,'_');
+}
+
+function showSyncStatus(msg, color){
+  var badge = document.getElementById('userBadge');
+  if(!badge) return;
+  var orig = badge.textContent;
+  badge.textContent = msg;
+  badge.style.color = color || 'var(--green)';
+  setTimeout(function(){
+    badge.textContent = orig;
+    badge.style.color = '';
+  }, 2000);
+}
+
+// Load data from cloud
+function loadFromCloud(onDone){
+  var savedBinId = localStorage.getItem('remont_bin_' + getBinName());
+  if(!savedBinId){ onDone(false); return; }
+  
+  cloudBinId = savedBinId;
+  fetch(JBIN_URL + '/b/' + savedBinId + '/latest', {
+    headers: {'X-Master-Key': JBIN_KEY, 'X-Bin-Meta': 'false'}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data && data.expenses) expenses = data.expenses;
+    if(data && data.planned) planned = data.planned;
+    if(data && data.settings) settings = Object.assign({budget:0,funds:[],address:''}, data.settings);
+    if(data && data.zones && data.zones.length) zonesArr = data.zones;
+    if(data && data.zonePhotos) zonePhotos = data.zonePhotos;
+    onDone(true);
+  })
+  .catch(function(){ onDone(false); });
+}
+
+// Save data to cloud (debounced)
+function saveToCloud(){
+  if(!cloudBinId && !localStorage.getItem('remont_bin_' + getBinName())) {
+    createCloudBin(); return;
+  }
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 1000);
+}
+
+function doSaveToCloud(){
+  if(isSyncing) return;
+  var binId = cloudBinId || localStorage.getItem('remont_bin_' + getBinName());
+  if(!binId){ createCloudBin(); return; }
+  isSyncing = true;
+  var data = {
+    expenses: expenses, planned: planned,
+    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
+    updated: new Date().toISOString()
+  };
+  fetch(JBIN_URL + '/b/' + binId, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json','X-Master-Key': JBIN_KEY},
+    body: JSON.stringify(data)
+  })
+  .then(function(){ isSyncing = false; })
+  .catch(function(){ isSyncing = false; });
+}
+
+function createCloudBin(){
+  var data = {
+    expenses: expenses, planned: planned,
+    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
+    updated: new Date().toISOString()
+  };
+  fetch(JBIN_URL + '/b', {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json',
+      'X-Master-Key': JBIN_KEY,
+      'X-Bin-Name': getBinName(),
+      'X-Bin-Private': 'true'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.metadata && data.metadata.id){
+      cloudBinId = data.metadata.id;
+      localStorage.setItem('remont_bin_' + getBinName(), cloudBinId);
+    }
+  })
+  .catch(function(){});
+}
 
 // ══════════════════════════════════════════════
 // AGREEMENT
@@ -762,6 +866,108 @@ function acceptAgreement(){
   document.getElementById('agreementScreen').style.display = 'none';
 }
 
+
+
+// ══════════════════════════════════════════════
+// JSONBIN CLOUD SYNC
+// ══════════════════════════════════════════════
+var JBIN_KEY = '$2a$10$71CFEBIQcWjhX5BJ6j7U9upaa6bj23OTxmEh/Wx82/zuB5aGLKp36';
+var JBIN_URL = 'https://api.jsonbin.io/v3';
+var cloudBinId = null;
+var syncTimer = null;
+var isSyncing = false;
+
+function getBinName(){
+  var code = localStorage.getItem('remont_code') || '';
+  return 'remont_' + code.toLowerCase().replace(/-/g,'_');
+}
+
+function showSyncStatus(msg, color){
+  var badge = document.getElementById('userBadge');
+  if(!badge) return;
+  var orig = badge.textContent;
+  badge.textContent = msg;
+  badge.style.color = color || 'var(--green)';
+  setTimeout(function(){
+    badge.textContent = orig;
+    badge.style.color = '';
+  }, 2000);
+}
+
+// Load data from cloud
+function loadFromCloud(onDone){
+  var savedBinId = localStorage.getItem('remont_bin_' + getBinName());
+  if(!savedBinId){ onDone(false); return; }
+  
+  cloudBinId = savedBinId;
+  fetch(JBIN_URL + '/b/' + savedBinId + '/latest', {
+    headers: {'X-Master-Key': JBIN_KEY, 'X-Bin-Meta': 'false'}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data && data.expenses) expenses = data.expenses;
+    if(data && data.planned) planned = data.planned;
+    if(data && data.settings) settings = Object.assign({budget:0,funds:[],address:''}, data.settings);
+    if(data && data.zones && data.zones.length) zonesArr = data.zones;
+    if(data && data.zonePhotos) zonePhotos = data.zonePhotos;
+    onDone(true);
+  })
+  .catch(function(){ onDone(false); });
+}
+
+// Save data to cloud (debounced)
+function saveToCloud(){
+  if(!cloudBinId && !localStorage.getItem('remont_bin_' + getBinName())) {
+    createCloudBin(); return;
+  }
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ doSaveToCloud(); }, 1000);
+}
+
+function doSaveToCloud(){
+  if(isSyncing) return;
+  var binId = cloudBinId || localStorage.getItem('remont_bin_' + getBinName());
+  if(!binId){ createCloudBin(); return; }
+  isSyncing = true;
+  var data = {
+    expenses: expenses, planned: planned,
+    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
+    updated: new Date().toISOString()
+  };
+  fetch(JBIN_URL + '/b/' + binId, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json','X-Master-Key': JBIN_KEY},
+    body: JSON.stringify(data)
+  })
+  .then(function(){ isSyncing = false; })
+  .catch(function(){ isSyncing = false; });
+}
+
+function createCloudBin(){
+  var data = {
+    expenses: expenses, planned: planned,
+    settings: settings, zones: zonesArr, zonePhotos: zonePhotos,
+    updated: new Date().toISOString()
+  };
+  fetch(JBIN_URL + '/b', {
+    method: 'POST',
+    headers: {
+      'Content-Type':'application/json',
+      'X-Master-Key': JBIN_KEY,
+      'X-Bin-Name': getBinName(),
+      'X-Bin-Private': 'true'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.metadata && data.metadata.id){
+      cloudBinId = data.metadata.id;
+      localStorage.setItem('remont_bin_' + getBinName(), cloudBinId);
+    }
+  })
+  .catch(function(){});
+}
 
 // ══════════════════════════════════════════════
 // AGREEMENT
@@ -885,6 +1091,7 @@ function initApp(){
   var savedCode = localStorage.getItem('remont_code');
   var savedName = localStorage.getItem('remont_name');
   if(savedCode && savedName && isValidCode(savedCode)){
+    // Auto-login with saved credentials
     loginWithCode(savedName, savedCode);
   } else {
     showAuthScreen();
@@ -894,12 +1101,22 @@ function initApp(){
 function showAuthScreen(){
   var s = document.getElementById('authScreen');
   s.style.display = 'flex';
+  // Pre-fill saved name and code
+  var savedName = localStorage.getItem('remont_name');
+  var savedCode = localStorage.getItem('remont_code');
+  if(savedName) document.getElementById('authName').value = savedName;
+  if(savedCode) document.getElementById('authCode').value = savedCode;
   document.getElementById('authName').onkeydown = function(e){
     if(e.key==='Enter') document.getElementById('authCode').focus();
   };
   document.getElementById('authCode').onkeydown = function(e){
     if(e.key==='Enter') authSubmit();
   };
+  // If both saved - auto login
+  if(savedName && savedCode && isValidCode(savedCode)){
+    loginWithCode(savedName, savedCode);
+    return;
+  }
 }
 
 var VALID_CODES = [
@@ -926,20 +1143,33 @@ function authSubmit(){
 }
 
 function loginWithCode(name, code){
-  // Save to localStorage
-  localStorage.setItem('remont_code', code.toUpperCase());
+  name = name.trim();
+  code = code.trim().toUpperCase();
+  localStorage.setItem('remont_code', code);
   localStorage.setItem('remont_name', name);
-  // Each code has its own data namespace
   currentUser = name;
   document.getElementById('authScreen').style.display = 'none';
-  // Update user badge
   var badge = document.getElementById('userBadge');
   if(badge){ badge.textContent = '👤 ' + name; badge.onclick = function(){ logout(); }; }
-  // Load data
-  loadAll();
-  buildAllZoneSelects();
-  var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length === 0;
-  if(isNew){ showOnboarding(); } else { renderDashboard(); }
+  
+  // Show loading indicator
+  if(badge) badge.textContent = '⏳ Загрузка...';
+  
+  // Try to load from cloud first
+  loadFromCloud(function(loaded){
+    if(badge) badge.textContent = '👤 ' + name;
+    if(loaded){
+      // Cloud data loaded - also update localStorage
+      saveExp(); savePlan(); saveSett(); saveZones();
+    } else {
+      // No cloud data - load from localStorage
+      loadAll();
+    }
+    buildAllZoneSelects();
+    if(!zonesArr || zonesArr.length===0){ zonesArr=DEFAULT_ZONES.slice(); rebuildZones(); }
+    var isNew = !localStorage.getItem(uk('onboarded')) && expenses.length === 0;
+    if(isNew){ showOnboarding(); } else { renderDashboard(); }
+  });
 }
 
 function logout(){
