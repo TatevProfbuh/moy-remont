@@ -228,8 +228,8 @@ main{flex:1;padding:16px 16px 96px;overflow-y:auto}
       Приобретая и используя данный продукт, вы соглашаетесь:<br><br>
       <b>1.</b> Продукт является интеллектуальной собственностью <b>Татев Багрян (Tatev.profbuh)</b> и защищён авторским правом.<br><br>
       <b>2.</b> Запрещается копировать, модифицировать, перепродавать или распространять продукт без письменного разрешения автора.<br><br>
-      <b>3.</b> Продукт предназначен для личного использования одним пользователем.<br><br>
-      <b>4.</b> По всем вопросам: <b>Макс +79169240099</b> (Telegram / WhatsApp)<br>Бухгалтерское агентство Tatev.profbuh
+      <b>3.</b> Продукт предназначен для личного использования одним пользователем.<br><br><b>4.</b> Один доступ предназначен для ведения одного проекта в одном браузере. Для сохранения данных рекомендуется продолжать работу на том же устройстве и в том же браузере.<br><br>
+      <b>5.</b> По всем вопросам: <b>Макс +79169240099</b> (Telegram / WhatsApp)<br>Бухгалтерское агентство Tatev.profbuh
     </div>
     <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding:10px;background:var(--bg);border-radius:var(--rs);cursor:pointer" onclick="toggleAgree()">
       <div id="agreeCheck" style="width:20px;height:20px;border:2px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--card);transition:all .15s"></div>
@@ -2328,7 +2328,7 @@ function exportPDF(){
   var html='<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт</title>'
     +'<style>'+css+'</style></head><body>'
     +'<button class="pbtn" onclick="window.print()">🖨 Сохранить PDF</button>'
-    +'<h1>Отчёт по ремонту</h1><div style="font-size:12px;color:#8a7a6a;margin-bottom:8px">Татев Багрян · Бухгалтерское агентство Tatev.profbuh · +79169240099</div>'+(settings.address?'<div style="font-size:15px;font-weight:700;color:#9b5a3c;margin:4px 0 8px">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
+    +'<h1>Отчёт по ремонту</h1>'+(settings.address?'<div style="font-size:15px;font-weight:700;color:#9b5a3c;margin:4px 0 8px">'+settings.address+'</div>':'')+'<div class="sub">'+uname+'Сформирован: '+nowStr+'</div>'
     +summGrid+budgBlock+fundsBlock
     +'<h2>По категориям — факт</h2>'
     +'<table><thead><tr><th>Категория</th><th class="r">Сумма</th><th class="r">Доля</th></tr></thead>'
@@ -2337,7 +2337,7 @@ function exportPDF(){
     +'<h2>Все расходы ('+expenses.length+')</h2>'
     +'<table><thead><tr><th>Описание</th><th>Категория</th><th>Зона</th><th>Откуда</th><th>Дата</th><th class="r">Сумма</th></tr></thead>'
     +'<tbody>'+expRows+'</tbody><tfoot><tr><td colspan="5">ИТОГО</td><td class="r">'+fmt(total)+'</td></tr></tfoot></table>'
-    +'</body></html>';
+    +'<div style="margin-top:32px;padding-top:14px;border-top:1px solid #e6ddd3;text-align:center;font-size:11px;color:#8a7a6a;line-height:1.6">Татев Багрян · Бухгалтерское агентство Tatev.profbuh<br>ТГ/Тел: +79169240099</div>'+'</body></html>';
 
   try{ pw.document.open(); pw.document.write(html); pw.document.close(); }
   catch(err){
